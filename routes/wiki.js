@@ -2,22 +2,17 @@ const router = require("express").Router();
 const wikipage = require("../views/wikiPage");
 const addpage = require("../views/addPage");
 const { Page, User } = require("../models");
-const { reset } = require("nodemon");
 const main = require("../views/main");
-let page;
 
 router.post("/", async (req, res, next) => {
   try {
     // res.json(req.body);
-    page = await Page.create({
-      title: req.body.pageTitle,
-      content: req.body.contentField,
-      status: req.body.pageStatus,
-    });
-    user = await User.create({
-      name: req.body.authorName,
-      email: req.body.authorEmail,
-    });
+    const page = await Page.create(req.body);
+    user = await User.findOrCreate({
+        where: { name: req.body.authorName, email: req.body.authorEmail }
+    })
+    const authorId = user[0].dataValues.id;
+    await page.setAuthor(authorId);
 
     res.redirect(`/wiki/${page.slug}`);
   } catch (err) {
@@ -27,7 +22,6 @@ router.post("/", async (req, res, next) => {
 
 router.get("/", async (req, res, next) => {
   let arr = await Page.findAll();
-  console.log("arr........", arr);
   const page = arr.map((element) => {
     return `<li><a href = "http://localhost:3000/wiki/${element.slug}">${element.title}</a></li>`;
   });
